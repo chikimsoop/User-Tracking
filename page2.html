@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<!--copied in-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Paths Map</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+  <style>
+    body { margin:0; font-family: Trebuchet MS, sans-serif; }
+
+    #map { 
+      position: relative;
+      width: 100%; 
+      height: 75vh; 
+    }
+    header, footer {
+      background-color: #614B47; color: white; text-align: center; padding: 10px;
+    }
+
+    /*style overall legend mennu*/
+    #menu {
+      background-color: #614B47; 
+      position: absolute; 
+      z-index: 1; /*sit on top*/
+      top: 10px;
+      right: 10px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,0.4);
+      font-family: 'Open Sans', sans-serif;
+    }
+
+    /*style for each attribute*/
+    #menu a {
+      display: block; 
+      padding: 8px; 
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0,0,0,0.25);
+      color: black; 
+      text-align: center;
+      background-color: white;
+    }
+
+    #menu a.active { 
+      background: lightbrown; /*when clicked*/
+      color: black; /*of text when active*/
+    }
+
+    p{
+      font-size: 16px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <header>
+    <h2>"Timmy's Fix" User Patterns</h2>
+    <p style="font-size: 15px">Our dedicated users' patterns that we have tracked (not in a <em> creepy</em> way...)</p>
+    <p> Click each user's name to display their paths on the map. Click again to toggle their paths off. <break>Note: only users with data are displayed and able to be toggled.  </p>
+    <p style="font-size: 12px;">Overlaid over Tim Horton's locations to demonstrate where more Tim Hortons may be the most beneficial. </p>
+    
+    <!--<p>With the haunting ghost of Timmy's locations</p>-->
+  </header>
+
+  
+
+  <div id="map">
+    <nav id="menu"></nav> <!-- so that the menu is overlain on the map --> 
+
+  </div>
+
+  <footer>
+    <p>Click here to retun to the data collection page: <button onclick="location.href='index.html'">Go back</button></p>
+  </footer>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1Ijoia2ltc29vZyIsImEiOiJjbWYycmtrNHowNDFzMmtuODBtNnNyZnI3In0.AozRifJUw4i7rwpyQWQkZw';
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/kimsoog/cmhgqgxvw006701s66wheblul',
+      center: [-73.60775, 45.49535],
+      zoom: 11.5
+    });
+
+    // Define users globally
+    const users = [
+      { name: "Nick",       file: "Nick.json",       color: "#e11d48" },
+      { name: "Kimsoo",     file: "Kimsoo.json",     color: "#2563eb" },
+      { name: "Matthew",    file: "Matthew.json",    color: "#16a34a" },
+      { name: "Max",        file: "Max.json",        color: "#f59e0b" },
+      { name: "Tavio",      file: "Tavio.json",      color: "#9333ea" },
+      { name: "Matteo",     file: "Matteo.json",     color: "#06b6d4" },
+      { name: "Kyle",       file: "Kyle.json",       color: "#84cc16" },
+      { name: "Instructor", file: "Instructor.json", color: "#f97316" },
+      { name: "Caroline",   file: "Caroline.json",   color: "#0ea5e9" },
+      { name: "User1",      file: "User1.json",      color: "#d946ef" }
+    ];
+
+    map.on("load", () => {
+      // this sets the tim hortons opasity to 20% so it is less the focus but still present
+      map.setPaintProperty("timhortonwburnside", "icon-opacity",0.25);
+      //map.setPaintProperty("timhortonwburnside", "text-opacity", 1);
+
+
+      for (const u of users) {
+        fetch(u.file)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (!data) return;
+
+            map.addSource(u.name, { type: "geojson", data: data });
+
+            map.addLayer({
+              id: u.name + "-line",
+              type: "line",
+              source: u.name,
+              layout: { visibility: "none" },
+              paint: { "line-color": u.color, "line-width": 4 }
+            });
+          });
+      }
+    });
+
+    //to toggle path visibility
+    map.on("idle", () => {
+      const menu = document.getElementById("menu");
+      
+
+      for (const u of users) {
+        const layerId = u.name + "-line";
+        if (!map.getLayer(layerId)) continue;
+        if (document.getElementById(u.name)) continue;
+
+        const link = document.createElement("a");
+        link.id = u.name;
+        link.textContent = u.name;
+        link.className = "";
+        link.dataset.layerId = layerId; 
+
+        link.onclick = (e) => {
+          e.preventDefault();
+          const clickedLayer = link.dataset.layerId;
+          const visibility = map.getLayoutProperty(clickedLayer, "visibility");
+
+          if (visibility === "visible") {
+            map.setLayoutProperty(clickedLayer, "visibility", "none");
+            link.className = "";
+
+            link.style.backgroundColor = "white";
+            link.style.color= "black";
+            link.style.fontWeight = "normal";
+          } 
+          else {
+            map.setLayoutProperty(clickedLayer, "visibility", "visible");
+            link.className = "active";
+            //link.color= u.color; //added
+            link.style.backgroundColor = u.color;
+            link.style.color = "white"; // make text visible on colored backgrounds
+            link.style.fontWeight = "bold";
+            
+          }
+        };
+
+        menu.appendChild(link); //add the elements data to the menu
+
+      }
+    });
+
+
+    //pop up
+    // when you click a line, grabs the information from the attributes of each point in the geojson
+    map.on('click', 'timhortonwburnside', (e) => {
+      // get the first user that was clicked
+
+      // popup box on click
+      const coordinates = e.geometry.coordinates.slice();
+      const description = "<h4><i>" + e.properties.user.name + "</i></h4>";
+
+      new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(description)
+        .addTo(map);
+    });
+  </script>
+</body>
+</html>

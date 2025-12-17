@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<!--assignment 3, group 4-->
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1"> <!--taken from W3 schools https://www.w3schools.com/html/html_mobile.asp-->
+
+<style>
+* 
+	body {
+	  font-family: Trebuchet MS, sans-serif;
+	}
+
+	/* Style the header */
+	header {
+	  background-color: #614B47;
+	  padding: 10px;
+	  text-align: center;
+	  font-size: 30px;
+	  color: white;
+	}
+
+	/* Style the footer */
+	footer {
+	  background-color: #614B47;
+	  padding: 10px;
+	  text-align: center;
+	  color: white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+  <p id="demo"></p>
+  <!--^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->
+	<header>
+		<image src="logo.png" height=70vh top=0>
+		<h2 style="font-size: 30px">Need a Timmy's fix?</h2> 
+		<p style="font-size: 15px">Want to always know <em>as soon as </em>you're within 200m of a Tim Hortons? Look no further! <p style="font-size: 17px"><strong>Log in to start tracking your Tim's adventure</strong></p></p>
+
+	</header>
+
+	<div id="userInfo">
+	<!-- to do a enter a user manually
+	<div class="search-container">
+    <form action="/action_page.php">
+      <input type="text" placeholder="UserID" name="userID">
+      <button type="submit">Log In </button>
+    </form>
+  </div>
+-->
+	<p></p>
+	<label for="dropdown">Choose a user:</label>
+	<select id="dropdown">
+	  <option value="1">Kimsoo</option>
+	  <option value="2">Nick</option>
+	  <option value="3">Matthew</option>
+	  <option value="4">Max</option>
+	  <option value="5">Tavio</option>
+	  <option value="6">Matteo</option>
+	  <option value="7">Kyle</option>
+	 	<option value="8">Caroline</option>
+	  <option value="9">User1</option>
+	  <option value="10">Instructor</option>
+	</select>
+
+	<button onclick="getSelectedValue()">Log In</button>
+	<p id="result"></p>
+
+	<script>
+		let userName = null; // this globlizes the username
+		let UserNumber = null; // this globlizes the number a user is in the user list
+
+// this is the user list
+	var users = [
+  {name:"Nick",				file:"Nick.json",				color:"#e11d48"},
+  {name:"Kimsoo",			file:"Kimsoo.json",			color:"#2563eb"},
+  {name:"Matthew",		file:"Matthew.json",		color:"#16a34a"},
+  {name:"Max",				file:"Max.json",				color:"#f59e0b"},
+  {name:"Tavio",			file:"Tavio.json",			color:"#9333ea"},
+  {name:"Matteo",			file:"Matteo.json",			color:"#06b6d4"},
+  {name:"Kyle",      	file:"Kyle.json",    	  color:"#84cc16"}, 
+  {name:"Instructor", file:"Instructor.json", color:"#f97316"},
+  {name:"Caroline",   file:"Caroline.json",   color:"#0ea5e9"}, 
+  {name:"User1",    	file:"User1.json",    	color:"#d946ef"}
+];
+
+		function getSelectedValue() {
+		  const dropdown = document.getElementById("dropdown");
+		  const selectedValue = dropdown.value; // Gets the value of the selected option
+		  const selectedText = dropdown.options[dropdown.selectedIndex].text; // Gets the text of the selected option
+		  userName = selectedText; // this saves  the user name you selected
+		  document.getElementById("result").innerText = ` You are logged in as: ${selectedText}`;
+
+		  // this finds what number the selected user is in the user list
+			if (userName != null) {
+				for (let i = 0; i < users.length; i++) {
+					if (users[i].name == userName) {
+						UserNumber = i;
+						break; 
+					}
+				}
+			}
+			setTimeout(TheMasterFunction, 0);
+	}
+
+
+
+	</script>
+
+</div> <!--end user info div-->
+
+	<!--^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->
+
+
+	<map>
+	  <!-- Mapbox GL JS Map -->
+	  <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+	  <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+
+	  <div id="map" style="width: 100%; height: 50vh;"></div>
+
+	<!--  <button id="alertCheckerButton"
+	  style="position:absolute; top:235px; right:80px; z-index:1; padding:6px 12px;
+	         background-color:#fff; border:1px solid #888; border-radius:4px; cursor:pointer;">
+	  Test Alerts
+	</button> -->
+
+	<dialog id="alertDialog" width="50%">
+		<p>Great news!! You're within 200m of a Tim Hortons!</p>
+		<p>Go get yourself a sweet treat, you deserve it<break>
+		<p style="font-size: 8px">(and we want your money)</p>
+	  <button id="waitButton">Maybe later (tell me in 30 seconds)</button>
+	  <button id="dismissButton">Leave me alone (i don't want Tim's, ok???)</button>
+	</dialog>
+
+	<script type="module">
+
+		mapboxgl.accessToken = 'pk.eyJ1Ijoia2ltc29vZyIsImEiOiJjbWYycmtrNHowNDFzMmtuODBtNnNyZnI3In0.AozRifJUw4i7rwpyQWQkZw';
+
+	    const map = new mapboxgl.Map({
+	      container: 'map',
+	      style: 'mapbox://styles/kimsoog/cmhgqgxvw006701s66wheblul',
+	      center: [-73.60775, 45.53841],
+	      zoom: 9
+	    });
+
+	//Proximity Sensor---------------------------------------------------------------------------------------
+
+map.on("load", () => { //To make sure map is loaded before points are collected
+	let userMarker = null;
+		
+		var timHortonsPoints = map.queryRenderedFeatures({ layers: ['timhortonwburnside'] }); //gets array from layer on load
+		var timHortonsLocations = [] //make empty array for Tim Hortons locations
+
+
+		function JSONtoCoordinateArray (warningPoints) { //turn json to coordinate array
+
+			for (var i = 0; i < warningPoints.length; i++) {
+				let coordinates = warningPoints[i].geometry.coordinates; //turn it into initial array
+				let tempObject = {x: coordinates[0], y: coordinates[1]}; //make temp x and y array
+				timHortonsLocations[i] = tempObject; //add temp array to locations array
+				//console.log(warningPoints[i].properties['addr:housenumber']);
+			}
+		}
+
+
+		JSONtoCoordinateArray(timHortonsPoints); //call function on tim hortons points
+
+
+		function findClosestPoint(currentLocation, locationPoints) { //to get distance between two points
+			let minDistance = Infinity;
+			let closestPoint = {};
+			var currentDistance = 0;
+
+				for (var j = 0; j < locationPoints.length;j++) { //cycle through each point
+					var currentDistance = Math.sqrt(Math.pow(currentLocation.x - locationPoints[j].x, 2) + Math.pow(currentLocation.y - locationPoints[j].y, 2));
+					if (currentDistance < minDistance) { //check if current point is closer and save it if it is
+					minDistance = currentDistance;
+					closestPoint = locationPoints[j];
+					}
+				}
+
+			return {md: 77878.1 * minDistance, cp: closestPoint}; //minimum distance converted from degrees to meters using the conversion at this site: https://www.opendem.info/arc2meters.html, arcseconds = 3600 (one meter), latitude = 45.5050 (burnside), result was 77878.12072849911 which I rounded to the sane muber of sig figs as the latitude
+		}
+
+
+
+			//CURRENT LOCATION SHOULD BE THE UPDATED LOCATION INSTEAD
+			let closestPointResult = { md: Infinity, cp: null };
+			let AlertDistince = 200 // now 200m (nick???) CHANGE THIS BEFOR SUBMITON IT IS SET TO 2KM not 200 M ----------------------------------READ ME
+			let lastAlertTime = 0;      // last time an alert appeared
+			let AlertCooldown = 30000;  // 30 seconds between alerts
+
+
+			//console.log(closestPointResult); //test if closest point was found
+			const alertDialog = document.getElementById('alertDialog')
+			const waitButton = document.getElementById('waitButton')
+			const dismissButton = document.getElementById('dismissButton')
+
+			var userHasDismissed = 0 //variable to know whether user has turned off alerts
+
+
+
+			//This is the function which opens the dialog box.
+			function alerter() {
+				  const now = Date.now(); // this gets the current time in milliseconds
+				  //skip if distance has not been computed  yet
+	  			if (closestPointResult.md === Infinity) {return};
+				  //skip if it has not been 60 seconds yet
+				  if (now - lastAlertTime < AlertCooldown) {return};
+
+			    if (closestPointResult.md < AlertDistince && userHasDismissed == 0) { //in range and alert is on
+	    			alertDialog.showModal();
+	    			lastAlertTime = now; // this record when alert was shown
+	  			} 
+	  			else {
+	    			alertDialog.close(); // otherwise close
+	 			 }
+			}
+
+
+
+			//This operates the wait button. It resets the lastAlertTime
+			waitButton.addEventListener("click", () => {
+				alertDialog.close(); // close temporarily
+	  		lastAlertTime = Date.now(); // start cooldown timer
+
+			});
+
+			//This 
+			dismissButton.addEventListener("click", () => {
+				userHasDismissed = 1 //turn off alerts
+				alertDialog.close(); //close dialog
+			});
+
+
+
+	// this function gets the users location
+	// it is called once then called every 30 seconds by the master function
+	// the get curent position function is not asynchronous this means that the code moves on before
+	// GPS location is retreved, to counter this a callback was added to run the code when the location returns its result.
+	// this code also get the curent time 
+	function Get_Time_And_Location(callback) {
+			// First GET the date time in YYYY-MM-DD  HH:MM:SS fomat 
+			const dateTime = new Date().toLocaleString('en-CA', { hour12: true });
+			// https://www.w3schools.com/jsref/prop_nav_geolocation.asp
+			// this gets the user location, getCurrentPosition keeps track of the users location so you only need to ask for location primision once
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition(function(position) {
+					// this saves the lat and long
+					let lon = position.coords.longitude;
+					let lat = position.coords.latitude;
+
+					// Note chat gpt wrote the 2 lines below, it tought me how to use a call back
+					if (typeof callback === "function") {
+						callback({ dateTime, lon, lat });
+					}
+		  }); 
+		}
+		}
+
+
+	// this function is called by the master function
+	// it adds a place marker to your curent location (updated every 30 seconds)
+	// it takes in the curent lat and long
+	function PlaceAMarker(lon, lat){
+				// This creates the user location marker in the user color if one dose not exist yet 
+				if (!userMarker) {
+					userMarker = new mapboxgl.Marker({ color: users[UserNumber].color })
+						.setLngLat([lon, lat])
+						.addTo(map);
+				// this updates the user marker to the curent location
+				} else {
+					userMarker.setLngLat([lon, lat]);
+				}
+
+				// recenter the map to curent location
+				map.flyTo({
+					center: [lon, lat],
+					zoom:  13,  // zoom //map.getZoom(),
+					speed: 0.8,      // animation speed
+				});
+			}
+
+
+
+
+	// this function was given to us and it writes the varibles timestamp_in, userID_in, lat_in, lng_in
+			// to a csv and a json
+	function writeToCSV(timestamp_in, userID_in, lat_in, lng_in){
+		var user = {
+	    timestamp_in: encodeURIComponent(timestamp_in),
+	    userID_in: encodeURIComponent(userID_in),
+	    lat_in: encodeURIComponent(lat_in),
+	    lng_in: encodeURIComponent(lng_in),
+		};	
+		if(window.XMLHttpRequest){xmlhttp=new XMLHttpRequest();}
+		else{xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");}
+		var url = "?timestamp="+user.timestamp_in+"&userID="+user.userID_in+"&lat="+user.lat_in+"&lng="+user.lng_in;
+		var sendUrl = 'writetojson.php' + url;
+		xmlhttp.open("GET", sendUrl, false); 
+		xmlhttp.send();
+	}
+
+
+
+	// this creates a variable for the writeToCSV function, i dont know why i need it but everything brakes without it
+	var xmlhttp; 
+
+
+	// this globlises the curent lat long and time for the master function
+	let MasterTime = null; 
+	let MasterLat = null; 
+	let MasterLon = null;
+
+
+
+
+
+
+	let StartStopRecording = true;
+
+	// the master function is the function that calls all the other functions
+	// it is called every 30 seconds 
+	// every 30 seconds it gets the curent time, lat, and lon
+	// if user name has been selected (and lat, lon, and time are not null),
+	// then the function will start calling the other functions like the writeToCSV function
+	// the findClosestPoint function (which takes lat and log)
+	//  the alerter function which adds popups, and the placea a marker function which places a location marker
+window.TheMasterFunction = function (){
+		Get_Time_And_Location(function(result) {
+			MasterTime = result.dateTime; 
+			MasterLat = result.lat;
+			MasterLon = result.lon;
+		});
+
+		if (userName !== null && MasterLon !== null && MasterLat !== null && MasterTime !== null && StartStopRecording == true ) {
+			writeToCSV(MasterTime, userName , MasterLat, MasterLon);
+		}
+
+		if ( userName !== null && MasterLon !== null && MasterLat !== null && StartStopRecording == true) {
+			closestPointResult = findClosestPoint({ x: MasterLon, y: MasterLat }, timHortonsLocations);
+			alerter();
+			PlaceAMarker(MasterLon, MasterLat);
+		} 
+	}
+
+
+
+	TheMasterFunction()
+	// this calls the location for the first time, so it dose not need to wait 30 seconds
+	Get_Time_And_Location();
+	// this calls the master function every 30 seconds and loops the full code
+	let masterFuncInterval=30000;
+	setInterval(TheMasterFunction, masterFuncInterval);
+
+
+		});
+
+
+
+
+</script>
+
+</map>
+
+<!--^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->
+
+
+<!--^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->
+
+<div id="userInfo">
+
+
+</div>
+
+<!---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^---->
+
+<div id="popUp">
+
+</div>
+
+<!--^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->
+
+<footer>
+	<!--navigate to next page-->
+	<p>Click here to navigate to the map of all user's data</p>
+	<button onclick="location.href='nextPage.html'">
+        Go to the next Page
+    </button>
+
+</footer>
+
+</body>
+
+</html>
